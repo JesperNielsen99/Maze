@@ -1,20 +1,17 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class MazeBF {
     private char[][] maze;
     private int rows, cols, endRow, endCol;
     private int startRow, startCol;
     private List<int[]> solutionPath;
-    private boolean[][] visited;
+    private final int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
     public MazeBF(char[][] maze) {
         this.maze = maze;
         this.rows = maze.length;
         this.cols = maze[0].length;
         this.solutionPath = new ArrayList<>();
-        this.visited = new boolean[rows][cols];
         findStart();
     }
 
@@ -33,41 +30,67 @@ public class MazeBF {
     }
 
     public boolean solveMazeBF() {
-        return solveMazeBF(startRow, startCol);
-    }
+        // Priority queue for open cells to explore
+        PriorityQueue<int[]> openCells = new PriorityQueue<>(Comparator.comparingInt(a -> a[2]));
 
-    public boolean solveMazeBF(int row, int col) {
-        if (row < 0 || col < 0 || row >= rows || col >= cols || maze[row][col] == '*') {
-            return false;
+        // Add the start cell to the open set with a heuristic cost
+        openCells.offer(new int[]{startRow, startCol, manhattanDistance(startRow, startCol, endRow, endCol)});
+
+        // Map to keep track of the cost to reach each cell
+        int[][] cost = new int[rows][cols];
+        for (int i = 0; i < rows; i++) {
+            Arrays.fill(cost[i], Integer.MAX_VALUE);
         }
+        cost[startRow][startCol] = 0;
 
-        solutionPath.add(new int[]{row, col});
-        visited[row][col] = false; // Unmark the cell as visited
+        // Map to keep track of the parent cell for each cell in the path
+        int[][][] parent = new int[rows][cols][2];
 
-        if (row == endRow && col == endCol) {
-            return true;
-        }
+        while (!openCells.isEmpty()) {
+            int[] current = openCells.poll();
+            int row = current[0];
+            int col = current[1];
+            int currentCost = current[2];
 
-        // Calculate Manhattan distance for each neighbor
-        PriorityQueue<int[]> neighbors = new PriorityQueue<>((a, b) ->
-                manhattanDistance(a[0], a[1], endRow, endCol) - manhattanDistance(b[0], b[1], endRow, endCol));
-
-        neighbors.offer(new int[]{row + 1, col}); // Down
-        neighbors.offer(new int[]{row - 1, col}); // Up
-        neighbors.offer(new int[]{row, col + 1}); // Right
-        neighbors.offer(new int[]{row, col - 1}); // Left
-
-        while (!neighbors.isEmpty()) {
-            int[] next = neighbors.poll();
-            if (solveMazeBF(next[0], next[1])) {
+            // Check if we've reached the goal
+            if (row == endRow && col == endCol) {
+                // Reconstruct the path
+                reconstructPath(parent);
                 return true;
+            }
+
+            // Explore neighbors
+            for (int[] direction : directions) {
+                int newRow = row + direction[0];
+                int newCol = col + direction[1];
+                int newCost = currentCost + 1; // Cost of moving to a neighboring cell
+
+                // Check if the neighbor is within bounds and can be visited
+                if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && maze[newRow][newCol] != '#' && newCost < cost[newRow][newCol]) {
+                    cost[newRow][newCol] = newCost;
+                    int heuristic = manhattanDistance(newRow, newCol, endRow, endCol);
+                    int totalCost = newCost + heuristic;
+                    openCells.offer(new int[]{newRow, newCol, totalCost});
+                    parent[newRow][newCol] = new int[]{row, col};
+                }
             }
         }
 
-        // If no solution found, backtrack
-        solutionPath.remove(solutionPath.size() - 1);
-        //visited[row][col] = false; // Unmark the cell as visited
+        // No path found
         return false;
+    }
+
+    private void reconstructPath(int[][][] parent) {
+        int row = endRow;
+        int col = endCol;
+        while (row != startRow || col != startCol) {
+            solutionPath.add(new int[]{row, col});
+            int[] current = parent[row][col];
+            row = current[0];
+            col = current[1];
+        }
+        solutionPath.add(new int[]{startRow, startCol}); // Add the start cell
+        Collections.reverse(solutionPath); // Reverse the path to get it from start to end
     }
 
     private int manhattanDistance(int x1, int y1, int x2, int y2) {
@@ -83,14 +106,15 @@ public class MazeBF {
         }
         System.out.println();
         System.out.print("Solution found: ");
-        for (int i = solutionPath.size() - 1; i >= 0; i--) {
+        for (int i = 0; i <= solutionPath.size() - 1; i++) {
             int[] cell = solutionPath.get(i);
-            if (cell == solutionPath.get(0)) {
+            if (cell == solutionPath.get(solutionPath.size()-1)) {
                 System.out.print("(" + cell[0] + ", " + cell[1] + ")");
             } else {
                 System.out.print("(" + cell[0] + ", " + cell[1] + "), ");
             }
         }
+        System.out.println();
     }
 
     public static void main(String[] args) {
