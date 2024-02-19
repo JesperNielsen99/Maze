@@ -66,7 +66,7 @@ public class MazeBF {
                 int newCost = currentCost + 1; // Cost of moving to a neighboring cell
 
                 // Check if the neighbor is within bounds and can be visited
-                if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && maze[newRow][newCol] != '#' && newCost < cost[newRow][newCol]) {
+                if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && maze[newRow][newCol] != '*' && newCost < cost[newRow][newCol]) {
                     cost[newRow][newCol] = newCost;
                     int heuristic = manhattanDistance(newRow, newCol, endRow, endCol);
                     int totalCost = newCost + heuristic;
